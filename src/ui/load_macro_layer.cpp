@@ -202,7 +202,11 @@ void LoadMacroLayer::onImportMacro(CCObject*) {
 
 			pathString += ".gdr.json";
 
+			#ifdef GEODE_IS_WINDOWS
 			std::ofstream f2(Utils::widen(pathString), std::ios::binary);
+			#else
+			std::ofstream f2(pathString, std::ios::binary);
+			#endif
 			auto data = tempMacro.exportData(true);
 
 			f2.write(reinterpret_cast<const char*>(data.data()), data.size());
