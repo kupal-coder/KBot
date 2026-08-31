@@ -784,8 +784,14 @@ void Renderer::startAudio(PlayLayer* pl) {
     if (dontRecordAudio) return;
 
     if (pl->m_levelEndAnimationStarted && endLevelLayer != nullptr) {
-        CCKeyboardDispatcher::get()->dispatchKeyboardMSG(enumKeyCodes::KEY_Space, true, false, cocos2d::CCDirector::sharedDirector()->getRealTime());
-        CCKeyboardDispatcher::get()->dispatchKeyboardMSG(enumKeyCodes::KEY_Space, false, false, cocos2d::CCDirector::sharedDirector()->getRealTime());
+        // 2.2081 added a `double timestamp` parameter to dispatchKeyboardMSG.
+        // GD's cocos2d has no getRealTime(); use a monotonic clock in seconds
+        // so the two synthetic space presses carry a valid, increasing timestamp.
+        double timestamp = std::chrono::duration_cast<std::chrono::duration<double>>(
+            std::chrono::steady_clock::now().time_since_epoch()
+        ).count();
+        CCKeyboardDispatcher::get()->dispatchKeyboardMSG(enumKeyCodes::KEY_Space, true, false, timestamp);
+        CCKeyboardDispatcher::get()->dispatchKeyboardMSG(enumKeyCodes::KEY_Space, false, false, timestamp);
     }
     else if (!pl->m_levelEndAnimationStarted) {
 
