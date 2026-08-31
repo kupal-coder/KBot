@@ -84,6 +84,10 @@ class $modify(FMODAudioEngine) {
 
         if (path != "playSound_01.ogg" || !Global::get().renderer.recordingAudio)
             return FMODAudioEngine::playEffect(path, speed, p2, volume);
+
+        // playSound_01.ogg while recording audio: suppress the SFX so it isn't
+        // mixed into the recorded output (same as the explode_11.ogg case).
+        return 0;
     }
 
 };
@@ -780,8 +784,8 @@ void Renderer::startAudio(PlayLayer* pl) {
     if (dontRecordAudio) return;
 
     if (pl->m_levelEndAnimationStarted && endLevelLayer != nullptr) {
-        CCKeyboardDispatcher::get()->dispatchKeyboardMSG(enumKeyCodes::KEY_Space, true, false);
-        CCKeyboardDispatcher::get()->dispatchKeyboardMSG(enumKeyCodes::KEY_Space, false, false);
+        CCKeyboardDispatcher::get()->dispatchKeyboardMSG(enumKeyCodes::KEY_Space, true, false, cocos2d::CCDirector::sharedDirector()->getRealTime());
+        CCKeyboardDispatcher::get()->dispatchKeyboardMSG(enumKeyCodes::KEY_Space, false, false, cocos2d::CCDirector::sharedDirector()->getRealTime());
     }
     else if (!pl->m_levelEndAnimationStarted) {
 
