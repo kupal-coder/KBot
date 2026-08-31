@@ -1,26 +1,108 @@
 {
-	"geode": "4.4.0",
+	"geode": "5.10.1",
 	"gd": {
-		"win": "2.2074",
-		"android": "2.2074"
+		"win": "2.2081",
+		"android": "2.2081"
 	},
-	"version": "2.4.1",
+	"version": "2.5.0",
 	"id": "zilko.xdbot",
 	"name": "xdBot",
 	"developer": "Zilko",
 	"description": "Best Free Bot fr",
-	"dependencies": [
-		{
-			"id": "geode.custom-keybinds",
-			"version": ">=v1.10.0",
-			"importance": "required",
-			"platforms": ["win"]
+	"dependencies": {
+		"geode.custom-keybinds": {
+			"version": ">=v2.2.0",
+			"required": false
 		}
-	],
+	},
 	"settings": {
 		"button-setting": {
-			"type": "custom:button",
-			"name": "Open Menu"
+			"type": "button",
+			"name": "Open Menu",
+			"buttons": {
+				"open": "Open"
+			}
+		},
+		"keybinds-title": {
+			"type": "title",
+			"name": "Keybinds"
+		},
+		"keybind_open_menu": {
+			"type": "keybind",
+			"name": "Open Menu",
+			"description": "Opens or closes the xdBot menu.",
+			"category": "universal",
+			"migrate-from": "zilko.xdbot/open_menu",
+			"default": "Alt+F"
+		},
+		"keybind_toggle_recording": {
+			"type": "keybind",
+			"name": "Record Macro",
+			"description": "Toggles recording.",
+			"category": "gameplay",
+			"migrate-from": "zilko.xdbot/toggle_recording",
+			"default": "Alt+G"
+		},
+		"keybind_toggle_playing": {
+			"type": "keybind",
+			"name": "Play Macro",
+			"description": "Toggles playing.",
+			"category": "gameplay",
+			"migrate-from": "zilko.xdbot/toggle_playing",
+			"default": "Alt+H"
+		},
+		"keybind_toggle_speedhack": {
+			"type": "keybind",
+			"name": "Speedhack",
+			"description": "Toggles speedhack.",
+			"category": "gameplay",
+			"migrate-from": "zilko.xdbot/toggle_speedhack",
+			"default": "Alt+S"
+		},
+		"keybind_toggle_noclip": {
+			"type": "keybind",
+			"name": "NoClip",
+			"description": "Toggles NoClip.",
+			"category": "gameplay",
+			"migrate-from": "zilko.xdbot/toggle_noclip",
+			"default": "Alt+N"
+		},
+		"keybind_toggle_frame_stepper": {
+			"type": "keybind",
+			"name": "Toggle Frame Stepper",
+			"description": "Toggles the frame stepper.",
+			"category": "gameplay",
+			"migrate-from": "zilko.xdbot/toggle_frame_stepper",
+			"default": "Alt+C"
+		},
+		"keybind_step_frame": {
+			"type": "keybind",
+			"name": "Advance Frame",
+			"description": "Advances one frame if the frame stepper is on.",
+			"category": "gameplay",
+			"migrate-from": "zilko.xdbot/step_frame",
+			"default": "V"
+		},
+		"keybind_show_trajectory": {
+			"type": "keybind",
+			"name": "Show Trajectory",
+			"description": "Toggles Show Trajectory.",
+			"category": "gameplay",
+			"migrate-from": "zilko.xdbot/show_trajectory",
+			"default": "Alt+T"
+		},
+		"keybind_toggle_render": {
+			"type": "keybind",
+			"name": "Render",
+			"description": "Toggles rendering.",
+			"category": "gameplay",
+			"migrate-from": "zilko.xdbot/toggle_render",
+			"default": "Alt+P",
+			"platforms": ["win"]
+		},
+		"general-title": {
+			"type": "title",
+			"name": "General"
 		},
 		"macro_accuracy": {
 			"type": "string",
@@ -73,22 +155,19 @@
 			"name": "Keybinds on editor",
 			"description": "Enables keybinds while on the level editor.",
 			"type": "bool",
-			"default": false,
-			"platforms": ["win"]
+			"default": false
 		},
 		"disable_keybinds": {
 			"name": "Disable keybinds",
 			"description": "Disables all keybinds.",
 			"type": "bool",
-			"default": false,
-			"platforms": ["win"]
+			"default": false
 		},
 		"recording_only_keybinds": {
 			"name": "Keybinds only while recording",
 			"description": "Keybinds only work while recording a macro.",
 			"type": "bool",
-			"default": false,
-			"platforms": ["win"]
+			"default": false
 		},
 		"level_settings_button": {
 			"name": "Show Button At Settings",

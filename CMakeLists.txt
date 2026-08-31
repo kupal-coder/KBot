@@ -1,11 +1,12 @@
-cmake_minimum_required(VERSION 3.21)
-set(CMAKE_CXX_STANDARD 20)
+cmake_minimum_required(VERSION 3.25 FATAL_ERROR)
+
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64")
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 
 project(xdBot2 VERSION 1.0.0)
- 
+
 add_library(${PROJECT_NAME} SHARED
     src/main.cpp
     src/global.cpp
@@ -31,7 +32,6 @@ add_library(${PROJECT_NAME} SHARED
     src/ui/render_settings_layer.cpp
     src/ui/load_macro_layer.cpp
     src/ui/clickbot_layer.cpp
-    src/ui/button_setting.cpp
 
     src/practice_fixes/input.cpp
     src/practice_fixes/player.cpp

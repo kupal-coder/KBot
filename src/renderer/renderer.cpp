@@ -143,10 +143,18 @@ class $modify(CCScheduler) {
 
 };
 
+bool Renderer::hasFFmpegAPI() {
+    // The Geode 5 build of eclipse.ffmpeg-api (v2.0.0) uses an event protocol
+    // this mod cannot bind to yet, see src/renderer/ffmpeg/events.hpp
+    if constexpr (!XDBOT_FFMPEG_API_SUPPORTED) return false;
+
+    return Loader::get()->isModLoaded("eclipse.ffmpeg-api");
+}
+
 bool Renderer::shouldUseAPI() {
     #ifdef GEODE_IS_WINDOWS
 
-    bool foundApi = Loader::get()->isModLoaded("eclipse.ffmpeg-api");
+    bool foundApi = Renderer::hasFFmpegAPI();
     std::filesystem::path ffmpegPath = Mod::get()->getSettingValue<std::filesystem::path>("ffmpeg_path");
     bool foundExe = std::filesystem::exists(ffmpegPath) && ffmpegPath.filename().string() == "ffmpeg.exe";
 
@@ -167,7 +175,7 @@ bool Renderer::toggle() {
         return false;
     }
 
-    bool foundApi = Loader::get()->isModLoaded("eclipse.ffmpeg-api");
+    bool foundApi = Renderer::hasFFmpegAPI();
     std::filesystem::path ffmpegPath = Mod::get()->getSettingValue<std::filesystem::path>("ffmpeg_path");
     bool foundExe = std::filesystem::exists(ffmpegPath) && ffmpegPath.filename().string() == "ffmpeg.exe";
 

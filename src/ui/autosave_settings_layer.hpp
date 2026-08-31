@@ -1,6 +1,6 @@
 #include "../includes.hpp"
 
-class AutoSaveLayer : public geode::Popup<>, public TextInputDelegate {
+class AutoSaveLayer : public xdbot::Popup<>, public TextInputDelegate {
 
 private:
 

@@ -1,7 +1,7 @@
 #include "../includes.hpp"
 #include "../hacks/show_trajectory.hpp"
 
-class TrajectorySettingsLayer : public geode::Popup<>, public ColorPickPopupDelegate, public TextInputDelegate {
+class TrajectorySettingsLayer : public xdbot::Popup<>, public TextInputDelegate {
 
 public:
 
@@ -120,11 +120,15 @@ private:
 		ColorChannelSprite* color = static_cast<CCNode*>(obj)->getTag() == 1 ? color1 : color2;
 		ColorPickPopup* popup = ColorPickPopup::create(color->getColor());
 		popup->setColorTarget(color);
-		popup->setDelegate(this);
+		// Geode v5 removed ColorPickPopupDelegate in favor of a callback
+		geode::Ref<TrajectorySettingsLayer> self = this;
+		popup->setCallback([self](const cocos2d::ccColor4B& color) {
+			self->updateColor(color);
+		});
 		popup->show();
 	}
 
-	void updateColor(const cocos2d::ccColor4B&) override {
+	void updateColor(const cocos2d::ccColor4B&) {
 		ShowTrajectory& t = ShowTrajectory::get();
 		t.color1 = ccc4FFromccc3B(color1->getColor());
 		t.color2 = ccc4FFromccc3B(color2->getColor());

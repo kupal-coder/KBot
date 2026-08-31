@@ -1,7 +1,8 @@
 #pragma once
 
 #include <Geode/Geode.hpp>
-// #include <Geode/loader/SettingEvent.hpp>
+#include <Geode/loader/SettingV3.hpp>
+#include <Geode/utils/Keyboard.hpp>
 
 #include <string>
 #include <thread>
@@ -15,22 +16,61 @@
 
 using namespace geode::prelude;
 
-const int seedAddr = 0x6a4e20;
-
 const int indexButton[6] = { 1, 2, 3, 1, 2, 3 };
 
 const std::map<int, int> buttonIndex[2] = { { {1, 0}, {2, 1}, {3, 2} }, { {1, 3}, {2, 4}, {3, 5} } };
 
 const int sidesButtons[4] = { 1, 2, 4, 5 };
 
+// Setting keys of the Custom Keybinds mod (geode.custom-keybinds), which since
+// Geode v5 exposes the vanilla gameplay keybinds as regular keybind settings.
 const std::string buttonIDs[6] = {
-    "robtop.geometry-dash/jump-p1",
-    "robtop.geometry-dash/move-left-p1",
-    "robtop.geometry-dash/move-right-p1",
-    "robtop.geometry-dash/jump-p2",
-    "robtop.geometry-dash/move-left-p2",
-    "robtop.geometry-dash/move-right-p2"
+    "jump-p1",
+    "move-left-p1",
+    "move-right-p1",
+    "jump-p2",
+    "move-left-p2",
+    "move-right-p2"
 };
+
+// Fallback (vanilla) keys used when the Custom Keybinds mod isn't installed.
+const std::vector<cocos2d::enumKeyCodes> defaultButtonKeys[6] = {
+    { cocos2d::KEY_Space, cocos2d::KEY_W },
+    { cocos2d::KEY_A },
+    { cocos2d::KEY_D },
+    { cocos2d::KEY_Up },
+    { cocos2d::KEY_Left },
+    { cocos2d::KEY_Right }
+};
+
+const char* const customKeybindsID = "geode.custom-keybinds";
+
+namespace xdbot {
+
+// Geode v5 removed the templated `geode::Popup<Args...>` class in favor of a
+// plain, non-templated `geode::Popup`. This is a minimal reimplementation of
+// the old API on top of the new one, so that the layers of this mod keep
+// working the same way they did before.
+template <class... Args>
+class Popup : public geode::Popup {
+protected:
+    virtual bool setup(Args... args) = 0;
+
+    bool initAnchored(
+        float width, float height, Args... args,
+        char const* bg = "GJ_square01.png", cocos2d::CCRect bgRect = {}
+    ) {
+        if (!geode::Popup::init(width, height, bg, bgRect)) return false;
+        return this->setup(std::forward<Args>(args)...);
+    }
+
+public:
+    // `onClose` is protected in Geode v5, but this mod closes its layers from
+    // the outside (keybinds, macro playback, the renderer, ...)
+    using geode::Popup::onClose;
+};
+
+}
 
 #define STATIC_CREATE(class, width, height) \
     static class* create() { \
@@ -79,7 +119,7 @@ public:
     static PauseLayer* getPauseLayer();
 
     Mod* mod = Mod::get();
-    geode::Popup<>* layer = nullptr;
+    xdbot::Popup<>* layer = nullptr;
 
     Macro macro;
     Renderer renderer;

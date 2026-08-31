@@ -887,8 +887,7 @@ void MacroEditLayer::onSave(CCObject*) {
             onClose(nullptr);
 
             CCArray* children = CCDirector::sharedDirector()->getRunningScene()->getChildren();
-            CCObject* child;
-            CCARRAY_FOREACH(children, child) {
+            for (CCNode* child : CCArrayExt<CCNode*>(children)) {
                 if (RecordLayer* layer = typeinfo_cast<RecordLayer*>(child)) {
                     layer->keyBackClicked();
                     break;
@@ -900,8 +899,7 @@ void MacroEditLayer::onSave(CCObject*) {
 
             Loader::get()->queueInMainThread([] {
                 CCArray* children = CCDirector::sharedDirector()->getRunningScene()->getChildren();
-                CCObject* child;
-                CCARRAY_FOREACH(children, child) {
+                for (CCNode* child : CCArrayExt<CCNode*>(children)) {
                     if (MacroEditLayer* layer = typeinfo_cast<MacroEditLayer*>(child)) {
                         editLayer = layer;
                         break;
@@ -953,15 +951,14 @@ void MacroEditLayer::onClear(CCObject*) {
 }
 
 void MacroEditLayer::onMerge(CCObject*) {
-    geode::Popup<>* layer = nullptr;
+    xdbot::Popup<>* layer = nullptr;
     if (Global::get().layer)
-        layer = typeinfo_cast<geode::Popup<>*>(Global::get().layer);
+        layer = typeinfo_cast<xdbot::Popup<>*>(Global::get().layer);
     else {
         CCArray* children = CCDirector::sharedDirector()->getRunningScene()->getChildren();
-        CCObject* child;
-        CCARRAY_FOREACH(children, child) {
+        for (CCNode* child : CCArrayExt<CCNode*>(children)) {
             if (typeinfo_cast<RecordLayer*>(child)) {
-                layer = typeinfo_cast<geode::Popup<>*>(child);
+                layer = typeinfo_cast<xdbot::Popup<>*>(child);
                 break;
             }
         }

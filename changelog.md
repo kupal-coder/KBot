@@ -1,3 +1,24 @@
+# v2.5.0
+
+* Updated for **Geometry Dash 2.2081** and **Geode 5.10.1**.
+* Keybinds are now native Geode keybind settings; the Custom Keybinds dependency is
+  optional and only used to read binds saved by older versions.
+* Replaced the removed `custom:button` setting with Geode's built-in `button` setting type.
+* Ported to the 2.2081 signatures of `GJBaseGameLayer::processCommands`,
+  `GJBaseGameLayer::getModifiedDelta` and `CCKeyboardDispatcher::dispatchKeyboardMSG`.
+* The seed modifier and practice-fix checkpoints now use `GameToolbox::fast_srand`
+  instead of a hardcoded Windows address, so they behave the same on every platform.
+* Checkpoint data is now captured in `CheckpointObject::init` on all platforms.
+* Replaced deprecated Geode APIs: `Popup`/`setID` helpers, `CCARRAY_FOREACH` -> `CCArrayExt`,
+  `file::pick(...).listen(...)` -> `async::spawn(...)`, `listenForSettingChanges<T>`.
+* Replaced `ColorPickPopupDelegate` (removed in Geode 5) with the new `setCallback` API.
+* `Utils::setBackgroundColor` now takes a `CCNodeRGBA*`, since popup backgrounds are
+  `NineSlice` instead of `CCScale9Sprite` in Geode 5.
+* FFmpeg API support is temporarily disabled: its Geode 5 client header is no longer
+  published, so the renderer falls back to ffmpeg.exe on Windows and reports a clear
+  error elsewhere.
+* Old macros (.gdr / .gdr.json / .xd) still load; the macro format is unchanged.
+
 # v2.4.1
 
 * Added Auto Clicker keybind.

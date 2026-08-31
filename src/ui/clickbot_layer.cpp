@@ -285,7 +285,7 @@ bool ClickbotLayer::setup() {
 	return true;
 }
 
-ClickSettingsLayer* ClickSettingsLayer::create(std::string button, geode::Popup<>* layer) {
+ClickSettingsLayer* ClickSettingsLayer::create(std::string button, xdbot::Popup<>* layer) {
 	ClickSettingsLayer* ret = new ClickSettingsLayer();
 	if (ret->initAnchored(250, 173, button, layer, Utils::getTexture().c_str())) {
 		ret->autorelease();
@@ -296,7 +296,7 @@ ClickSettingsLayer* ClickSettingsLayer::create(std::string button, geode::Popup<
 	return nullptr;
 }
 
-bool ClickSettingsLayer::setup(std::string button, geode::Popup<>* layer) {
+bool ClickSettingsLayer::setup(std::string button, xdbot::Popup<>* layer) {
 	cocos2d::CCPoint offset = (CCDirector::sharedDirector()->getWinSize() - m_mainLayer->getContentSize()) / 2;
     m_mainLayer->setPosition(m_mainLayer->getPosition() - offset);
     m_closeBtn->setPosition(m_closeBtn->getPosition() + offset);
@@ -402,18 +402,22 @@ void ClickSettingsLayer::onSelectFile(CCObject*) {
 	textFilter.files = { "*.mp3", "*.ogg" };
 	fileOptions.filters.push_back(textFilter);
 
-	file::pick(file::PickMode::OpenFile, { Mod::get()->getResourcesDir(), { textFilter } }).listen([this](Result<std::filesystem::path>* res) {
-		if (res->isOk()) {
-			std::filesystem::path path = res->unwrapOrDefault();
+	geode::Ref<ClickSettingsLayer> self = this;
 
-			filenameLabel->setString(path.filename().string().c_str());
+	async::spawn(
+		file::pick(file::PickMode::OpenFile, { Mod::get()->getResourcesDir(), { textFilter } }),
+		[self](file::PickResult res) {
+		if (res.isOk() && res.unwrap().has_value()) {
+			std::filesystem::path path = res.unwrap().value();
 
-			settings.path = path;
-			saveSettings();
+			self->filenameLabel->setString(path.filename().string().c_str());
 
-			static_cast<ClickbotLayer*>(clickbotLayer)->updateLabels();
+			self->settings.path = path;
+			self->saveSettings();
+
+			static_cast<ClickbotLayer*>(self->clickbotLayer)->updateLabels();
 		}
-		});
+	});
 }
 
 void ClickSettingsLayer::onRestore(CCObject*) {
