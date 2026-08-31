@@ -28,11 +28,21 @@ covers the exact same use case.
 * `CMAKE_CXX_STANDARD` 20 → **23** (Geode 5 headers require C++23).
 * Removed `src/ui/button_setting.cpp` from the source list.
 
-### CI (`.github/workflows/*.yml`)
-* Pinned `sdk: v5.10.1` on `geode-sdk/build-geode-mod` (was implicitly nightly).
-* `bindings-ref: main` kept so the 2.2081 bindings are used.
-* The multi-platform workflow also triggers on `arena/**` branches so the port
-  can be compiled by CI.
+### CI (`.github/workflows/*.yml`) — **recommended, not applied**
+The workflow files were left untouched because the push credentials used for this
+port are not allowed to modify `.github/workflows`. Apply this by hand:
+
+```yaml
+      - name: Build the mod
+        uses: geode-sdk/build-geode-mod@main
+        with:
+          sdk: v5.10.1          # <- add: pin the SDK the mod declares
+          bindings: geode-sdk/bindings
+          bindings-ref: main    # already present: 2.2081 bindings
+```
+
+and, if you want branches other than `main` built, add them to the `push.branches`
+list of `multi-platform.yml`.
 
 ---
 
@@ -135,7 +145,7 @@ cmake --build build-android64
 Requirements: CMake ≥ 3.25, a C++23 compiler (clang 17+/clang-cl; MSVC alone is
 not supported by Geode), and bindings from `geode-sdk/bindings@main` (2.2081).
 CI (`.github/workflows/multi-platform.yml`) does all of this automatically for
-Windows, Android32 and Android64.
+Windows, Android32 and Android64 (add the `sdk: v5.10.1` pin described above).
 
 ---
 
