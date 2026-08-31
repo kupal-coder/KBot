@@ -6,7 +6,7 @@
 
 const std::unordered_map<int, std::string> buttons = { {1, ""} };
 
-class ClickSettingsLayer : public geode::Popup<std::string, geode::Popup<>*> {
+class ClickSettingsLayer : public xdbot::Popup<std::string, xdbot::Popup<>*> {
 
 private:
 
@@ -22,13 +22,13 @@ private:
 
     CCMenuItemToggler* disableToggle = nullptr;
 
-    bool setup(std::string button, geode::Popup<>* layer) override;
+    bool setup(std::string button, xdbot::Popup<>* layer) override;
 
 public:
 
-    geode::Popup<>* clickbotLayer = nullptr;
+    xdbot::Popup<>* clickbotLayer = nullptr;
 
-    static ClickSettingsLayer* create(std::string button, geode::Popup<>* layer);
+    static ClickSettingsLayer* create(std::string button, xdbot::Popup<>* layer);
 
     void saveSettings() {
         matjson::Value data = matjson::Serialize<ClickSetting>::to_json(settings);
@@ -74,7 +74,7 @@ public:
 };
 
 
-class ClickbotLayer : public geode::Popup<> {
+class ClickbotLayer : public xdbot::Popup<> {
 
     Slider* volumeSlider = nullptr;
     Slider* pitchSlider = nullptr;
@@ -98,7 +98,7 @@ public:
 
     void openClickSettings(CCObject* obj) {
         std::string id = static_cast<CCMenuItemSpriteExtra*>(obj)->getID();
-        ClickSettingsLayer::create(id, static_cast<geode::Popup<>*>(this))->show();
+        ClickSettingsLayer::create(id, static_cast<xdbot::Popup<>*>(this))->show();
     }
 
     void updateLabels();

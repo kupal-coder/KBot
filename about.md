@@ -20,6 +20,13 @@
  * Macro saving and loading system.
  * Macro Auto Saving.
 
+# Requirements
+
+* Geometry Dash <cy>2.2081</c> and Geode <cy>5.10.1</c> or newer.
+
+* Keybinds are configured in the mod's settings (Geode's built-in keybind settings).
+<cl>Custom Keybinds</c> is optional and only used to import binds from older xdBot versions.
+
 # How to use
 
 * Open the menu using the Open Menu Keybind or the button in the Pause Menu.

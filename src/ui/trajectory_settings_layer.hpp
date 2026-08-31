@@ -1,7 +1,7 @@
 #include "../includes.hpp"
 #include "../hacks/show_trajectory.hpp"
 
-class TrajectorySettingsLayer : public geode::Popup<>, public ColorPickPopupDelegate, public TextInputDelegate {
+class TrajectorySettingsLayer : public xdbot::Popup<>, public ColorPickPopupDelegate, public TextInputDelegate {
 
 public:
 

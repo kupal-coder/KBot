@@ -11,13 +11,9 @@
 #include <Geode/modify/CCKeyboardDispatcher.hpp>
 #include <Geode/modify/CCTouchDispatcher.hpp>
 
-#ifdef GEODE_IS_WINDOWS
-
-#include <geode.custom-keybinds/include/Keybinds.hpp>
-#include <regex>
-
-#endif
-
+// Since Geode v5 keybinds are a built-in setting type, so the mod no longer
+// needs the Custom Keybinds API to register its own keybinds. The IDs below
+// are the keys of the keybind settings declared in mod.json.
 const std::vector<std::string> keybindIDs = {
     "open_menu", "toggle_recording", "toggle_playing",
     "toggle_speedhack", "toggle_frame_stepper", "step_frame",
@@ -25,7 +21,8 @@ const std::vector<std::string> keybindIDs = {
 };
 
 class $modify(CCKeyboardDispatcher) {
-  bool dispatchKeyboardMSG(enumKeyCodes key, bool isKeyDown, bool isKeyRepeat) {
+  // 2.2081 added the timestamp parameter
+  bool dispatchKeyboardMSG(enumKeyCodes key, bool isKeyDown, bool isKeyRepeat, double timestamp) {
   
     auto& g = Global::get();
 
@@ -37,38 +34,11 @@ class $modify(CCKeyboardDispatcher) {
       }
     }
 
-    // if (key == enumKeyCodes::KEY_L && !isKeyRepeat && isKeyDown) {
-    // }
-
-    // if (key == enumKeyCodes::KEY_F && !isKeyRepeat && isKeyDown && PlayLayer::get()) {
-    //   log::debug("POS DEBUG {}", PlayLayer::get()->m_player1->getPosition());
-    //   log::debug("POS2 DEBUG {}", PlayLayer::get()->m_player2->getPosition());
-    // }
-
-
-    // if (key == enumKeyCodes::KEY_J && !isKeyRepeat && isKeyDown && PlayLayer::get()) {
-    //   std::string str = ZipUtils::decompressString(PlayLayer::get()->m_level->m_levelString.c_str(), true, 0);
-    //   log::debug("{}", str);
-    // }
-
-    return CCKeyboardDispatcher::dispatchKeyboardMSG(key, isKeyDown, isKeyRepeat);
+    return CCKeyboardDispatcher::dispatchKeyboardMSG(key, isKeyDown, isKeyRepeat, timestamp);
   }
 };
 
-#ifdef GEODE_IS_ANDROID
-
-namespace keybinds {
-
-  struct ActionID {};
-
-};
-
-#endif
-
-using namespace keybinds;
-
-void onKeybind(bool down, ActionID id) {
-#ifdef GEODE_IS_WINDOWS
+void onKeybind(bool down, std::string_view id) {
 
   auto& g = Global::get();
 
@@ -78,7 +48,7 @@ void onKeybind(bool down, ActionID id) {
   if (g.state != state::recording && g.mod->getSettingValue<bool>("recording_only_keybinds"))
     return;
 
-  if (id == "open_menu"_spr) {
+  if (id == "open_menu") {
     if (g.layer) {
       static_cast<RecordLayer*>(g.layer)->onClose(nullptr);
       return;
@@ -87,22 +57,22 @@ void onKeybind(bool down, ActionID id) {
     RecordLayer::openMenu();
   }
 
-  if (id == "toggle_recording"_spr)
+  if (id == "toggle_recording")
     Macro::toggleRecording();
 
-  if (id == "toggle_playing"_spr)
+  if (id == "toggle_playing")
     Macro::togglePlaying();
 
-  if (id == "toggle_frame_stepper"_spr && PlayLayer::get())
+  if (id == "toggle_frame_stepper" && PlayLayer::get())
     Global::toggleFrameStepper();
 
-  if (id == "step_frame"_spr)
+  if (id == "step_frame")
     Global::frameStep();
 
-  if (id == "toggle_speedhack"_spr)
+  if (id == "toggle_speedhack")
     Global::toggleSpeedhack();
 
-  if (id == "show_trajectory"_spr) {
+  if (id == "show_trajectory") {
     g.mod->setSavedValue("macro_show_trajectory", !g.mod->getSavedValue<bool>("macro_show_trajectory"));
 
     if (g.layer) {
@@ -114,7 +84,9 @@ void onKeybind(bool down, ActionID id) {
     if (!g.showTrajectory) ShowTrajectory::trajectoryOff();
   }
 
-  if (id == "toggle_render"_spr && PlayLayer::get()) {
+#ifdef GEODE_IS_WINDOWS
+
+  if (id == "toggle_render" && PlayLayer::get()) {
     bool result = Renderer::toggle();
 
     if (result && Global::get().renderer.recording)
@@ -127,7 +99,9 @@ void onKeybind(bool down, ActionID id) {
 
   }
 
-  if (id == "toggle_noclip"_spr) {
+#endif
+
+  if (id == "toggle_noclip") {
     g.mod->setSavedValue("macro_noclip", !g.mod->getSavedValue<bool>("macro_noclip"));
 
     if (g.layer) {
@@ -136,101 +110,36 @@ void onKeybind(bool down, ActionID id) {
     }
   }
 
-#endif
-
 }
 
 $execute{
 
-  #ifdef GEODE_IS_WINDOWS
+  for (const std::string& id : keybindIDs) {
+    geode::listenForKeybindSettingPresses(
+      "keybind_" + id,
+      [id](geode::Keybind const&, bool down, bool repeat, double) {
+        // The frame stepper keybind is the only one that may repeat
+        if (repeat && id != "step_frame") return false;
 
-    BindManager * bm = BindManager::get();
+        onKeybind(down, id);
 
-    bm->registerBindable({
-        "open_menu"_spr,
-        "Open Menu",
-        "Open Menu.",
-        { Keybind::create(KEY_F, Modifier::Alt) },
-        "xdBot",
-        false
-    });
+        // Propagate, like the mod used to do with Custom Keybinds
+        return false;
+      }
+    );
+  }
 
-    bm->registerBindable({
-        "toggle_recording"_spr,
-        "Record macro",
-        "Toggles recording.",
-        { Keybind::create(KEY_G, Modifier::Alt) },
-        "xdBot",
-        false
-    });
+  // Opens the menu from the "Open Menu" button in the mod's settings
+  geode::ButtonSettingPressedEventV3(Mod::get(), "button-setting").listen([](std::string_view) {
+    if (Global::get().layer) return true;
 
-    bm->registerBindable({
-      "toggle_playing"_spr,
-      "Play macro",
-      "Toggles playing.",
-      { Keybind::create(KEY_H, Modifier::Alt) },
-      "xdBot",
-        false
-    });
-
-    bm->registerBindable({
-      "toggle_speedhack"_spr,
-      "Speedhack",
-      "Toggles speedhack.",
-      { Keybind::create(KEY_S, Modifier::Alt) },
-      "xdBot",
-        false
-    });
-
-    bm->registerBindable({
-      "toggle_noclip"_spr,
-      "NoClip",
-      "Toggles NoClip.",
-      { Keybind::create(KEY_N, Modifier::Alt) },
-      "xdBot",
-        false
-    });
-
-    bm->registerBindable({
-      "toggle_frame_stepper"_spr,
-      "Toggle Frame Stepper",
-      "Toggles frame stepper..",
-      { Keybind::create(KEY_C, Modifier::Alt) },
-      "xdBot",
-      false
-    });
-
-    bm->registerBindable({
-      "step_frame"_spr,
-      "Advance frame",
-      "Advances one frame if frame stepper is on.",
-      { Keybind::create(KEY_V) },
-      "xdBot"
-    });
-
-    bm->setRepeatOptionsFor("step_frame"_spr, { true, 10, 450 });
-
-    bm->registerBindable({
-      "show_trajectory"_spr,
-      "Show Trajectory",
-      "Toggles Show Trajectory.",
-      { Keybind::create(KEY_T, Modifier::Alt) },
-      "xdBot"
-    });
-
-    bm->registerBindable({
-      "toggle_render"_spr,
-      "Render",
-      "Toggles rendering.",
-      { Keybind::create(KEY_P, Modifier::Alt) },
-      "xdBot",
-      false
-    });
-
-    for (int i = 0; i < keybindIDs.size(); i++) {
-        new EventListener([=](InvokeBindEvent* event) { onKeybind(event->isDown(), event->getID()); return ListenerResult::Propagate;
-        }, InvokeBindFilter(nullptr, (""_spr) + keybindIDs[i]));
+    if (CCArray* children = CCDirector::sharedDirector()->getRunningScene()->getChildren()) {
+      if (FLAlertLayer* layer = typeinfo_cast<FLAlertLayer*>(children->lastObject()))
+        layer->keyBackClicked();
     }
 
-  #endif
+    RecordLayer::openMenu();
+    return true;
+  }).leak();
+
 }

@@ -1,3 +1,18 @@
+# v2.5.0
+
+* Updated for **Geometry Dash 2.2081** and **Geode 5.10.1**.
+* Keybinds are now native Geode keybind settings; the Custom Keybinds dependency is
+  optional and only used to read binds saved by older versions.
+* Replaced the removed `custom:button` setting with Geode's built-in `button` setting type.
+* Ported to the 2.2081 signatures of `GJBaseGameLayer::processCommands`,
+  `GJBaseGameLayer::getModifiedDelta` and `CCKeyboardDispatcher::dispatchKeyboardMSG`.
+* The seed modifier and practice-fix checkpoints now use `GameToolbox::fast_srand`
+  instead of a hardcoded Windows address, so they behave the same on every platform.
+* Checkpoint data is now captured in `CheckpointObject::init` on all platforms.
+* Replaced deprecated Geode APIs: `Popup`/`setID` helpers, `CCARRAY_FOREACH` -> `CCArrayExt`,
+  `file::pick(...).listen(...)` -> `async::spawn(...)`, `listenForSettingChanges<T>`.
+* Old macros (.gdr / .gdr.json / .xd) still load; the macro format is unchanged.
+
 # v2.4.1
 
 * Added Auto Clicker keybind.

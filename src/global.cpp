@@ -3,10 +3,6 @@
 
 #include <Geode/modify/CCTextInputNode.hpp>
 
-#ifdef GEODE_IS_WINDOWS
-#include <geode.custom-keybinds/include/Keybinds.hpp>
-#endif
-
 #include <random>
 
 class $modify(CCTextInputNode) {
@@ -186,23 +182,29 @@ int Global::getCurrentFrame(bool editor) {
 }
 
 void Global::updateKeybinds() {
-#ifdef GEODE_IS_WINDOWS
-
   auto& g = Global::get();
+
+  // Since Geode v5 the Custom Keybinds mod exposes the vanilla gameplay
+  // keybinds as regular keybind settings, so they can be read directly.
+  Mod* keybindsMod = Loader::get()->getLoadedMod(customKeybindsID);
+
   for (size_t i = 0; i < 6; i++) {
-    auto keys = keybinds::BindManager::get()->getBindsFor(buttonIDs[i]);
-    std::vector<int> keysInts = {};
-
-    for (size_t j = 0; j < keys.size(); j++) {
-      keysInts.push_back(keys[j]->getHash());
-      g.allKeybinds.insert(keys[j]->getHash());
-    }
-
     g.keybinds[i].clear();
-    for (int k = 0; k < keysInts.size(); k++)
-      g.keybinds[i].push_back(keysInts[k]);
+
+    if (keybindsMod) {
+      for (const geode::Keybind& bind : keybindsMod->getSettingValue<std::vector<geode::Keybind>>(buttonIDs[i])) {
+        int key = static_cast<int>(bind.key);
+        g.keybinds[i].push_back(key);
+        g.allKeybinds.insert(key);
+      }
+    }
+    else {
+      for (cocos2d::enumKeyCodes key : defaultButtonKeys[i]) {
+        g.keybinds[i].push_back(static_cast<int>(key));
+        g.allKeybinds.insert(static_cast<int>(key));
+      }
+    }
   }
-#endif
 }
 
 void Global::updateSeed(bool isRestart) {
@@ -229,22 +231,15 @@ void Global::updateSeed(bool isRestart) {
       finalSeed = distribution(generator);
     }
 
-#ifdef GEODE_IS_WINDOWS
-    *(uintptr_t*)((char*)geode::base::get() + seedAddr) = finalSeed;
-#else
-    GameToolbox::fast_srand(finalSeed);
-#endif
+    // Geode's bindings implement this on every platform, no need for a
+    // hardcoded address anymore.
+    GameToolbox::fast_srand(static_cast<uint64_t>(finalSeed));
 
     g.safeMode = true;
   }
 
-  if (isRestart && g.state == state::recording) {
-#ifdef GEODE_IS_WINDOWS
-    g.macro.seed = *(uintptr_t*)((char*)geode::base::get() + seedAddr);
-#else
-    g.macro.seed = 0;
-#endif
-  }
+  if (isRestart && g.state == state::recording)
+    g.macro.seed = static_cast<uintptr_t>(GameToolbox::getfast_srand());
 
 }
 
@@ -335,8 +330,9 @@ void Global::frameStepperOff() {
 
 PauseLayer* Global::getPauseLayer() {
   CCArray* children = CCDirector::sharedDirector()->getRunningScene()->getChildren();
-  CCObject* child;
-  CCARRAY_FOREACH(children, child) {
+  if (!children) return nullptr;
+
+  for (CCNode* child : CCArrayExt<CCNode*>(children)) {
     if (PauseLayer* pauseLayer = typeinfo_cast<PauseLayer*>(child))
       return pauseLayer;
   }
