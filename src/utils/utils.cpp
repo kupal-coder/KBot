@@ -182,11 +182,13 @@ std::string Utils::getSimplifiedString(std::string str) {
     return str;
 }
 
-void Utils::setBackgroundColor(cocos2d::extension::CCScale9Sprite* bg) {
+// Geode 5 popups use NineSlice for their background, the game still uses
+// CCScale9Sprite; both derive from CCNodeRGBA
+void Utils::setBackgroundColor(cocos2d::CCNodeRGBA* bg) {
     cocos2d::ccColor3B color = Mod::get()->getSettingValue<cocos2d::ccColor3B>("background_color");
 
 	if (color == ccc3(51, 68, 153))
 		color = ccc3(255, 255, 255);
 
-	bg->setColor(color);
+	if (bg) bg->setColor(color);
 }

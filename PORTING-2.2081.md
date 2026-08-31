@@ -161,6 +161,18 @@ Windows, Android32 and Android64 (add the `sdk: v5.10.1` pin described above).
 * **Keybind migration**: `migrate-from` moves binds from Custom Keybinds IDs to
   the new native settings. If Custom Keybinds is installed, xdBot still reads the
   old binds; users who had exotic binds should double-check them once.
+* **FFmpeg API (`eclipse.ffmpeg-api`) support is stubbed out.** The old
+  `src/renderer/ffmpeg/events.hpp` was written against Geode 4's legacy event
+  system (`class X : public geode::Event` + `post()`), which no longer exists in
+  Geode 5. FFmpeg API v2.0.0 is the Geode 5 build of that mod, but its client
+  header is not published anywhere (the `EclipseMenu/ffmpeg-api` repository has
+  been removed) and the event protocol cannot be reconstructed from the compiled
+  mod. The interface is kept but returns `Err(...)`, and `Renderer::hasFFmpegAPI()`
+  reports the API as missing, so: **Windows rendering via `ffmpeg.exe` works as
+  before**, and on other platforms the render button shows the usual "FFmpeg API
+  not found" dialog instead of crashing. Restoring it is a drop-in job: replace
+  `events.hpp` with the official v2 header and set `XDBOT_FFMPEG_API_SUPPORTED`
+  to `1`.
 * **Renderer** is still Windows-only in practice and still depends on an external
   `ffmpeg.exe`. The Camellia 2.7 build additionally supports `eclipse.ffmpeg-api`
   on Android/iOS — that was intentionally *not* pulled in here to keep the change

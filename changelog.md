@@ -11,6 +11,12 @@
 * Checkpoint data is now captured in `CheckpointObject::init` on all platforms.
 * Replaced deprecated Geode APIs: `Popup`/`setID` helpers, `CCARRAY_FOREACH` -> `CCArrayExt`,
   `file::pick(...).listen(...)` -> `async::spawn(...)`, `listenForSettingChanges<T>`.
+* Replaced `ColorPickPopupDelegate` (removed in Geode 5) with the new `setCallback` API.
+* `Utils::setBackgroundColor` now takes a `CCNodeRGBA*`, since popup backgrounds are
+  `NineSlice` instead of `CCScale9Sprite` in Geode 5.
+* FFmpeg API support is temporarily disabled: its Geode 5 client header is no longer
+  published, so the renderer falls back to ffmpeg.exe on Windows and reports a clear
+  error elsewhere.
 * Old macros (.gdr / .gdr.json / .xd) still load; the macro format is unchanged.
 
 # v2.4.1

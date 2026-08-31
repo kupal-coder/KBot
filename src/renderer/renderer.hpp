@@ -74,6 +74,7 @@ public:
     void handleAudioRecording(PlayLayer* pl, int frame);
     
     static bool toggle();
+    static bool hasFFmpegAPI();
     static bool shouldUseAPI();
     bool tryPause();
 };
