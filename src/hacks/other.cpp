@@ -104,7 +104,7 @@ class $modify(PlayLayer) {
         }
         g.autosaveCheck = 0.f;
         auto now = std::chrono::steady_clock::now();
-        int currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+        std::int64_t currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
 
         Macro::autoSave(m_level, currentTime);
     }

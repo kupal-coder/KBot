@@ -42,7 +42,6 @@ struct Macro : gdr::Replay<Macro, input> {
 public:
 
     bool canChangeFPS = true;
-    uintptr_t seed = 0;
     bool xdBotMacro = true;
 
     static void recordAction(int frame, int button, bool player2, bool hold);
@@ -51,7 +50,7 @@ public:
 
     static int save(std::string author, std::string desc, std::string path, bool json = false);
 
-    static void autoSave(GJGameLevel* level, int number);
+    static bool autoSave(GJGameLevel* level, std::int64_t number);
 
     static void tryAutosave(GJGameLevel* level, CheckpointObject* cp);
 

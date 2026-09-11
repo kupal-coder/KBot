@@ -25,8 +25,8 @@ class $modify(GJBaseGameLayer) {
         const int releaseFor[2] = {g.releaseFor, g.releaseFor2};
 
         for (int i = 0; i < 2; i++) { // check 2 player mode
-            bool isPlayer1 = (i == 0);
-            if ((!g.autoclickerP1 && isPlayer1) || (!g.autoclickerP2 && !isPlayer1)) continue;
+            bool player2 = (i == 1);
+            if ((!g.autoclickerP1 && !player2) || (!g.autoclickerP2 && player2)) continue;
 
             if (f->framesReleasing[i] < (releaseFor[i] - 1) / (f->holding[i] ? 2.f : 1.f)) {
                 f->framesReleasing[i]++;
@@ -36,7 +36,7 @@ class $modify(GJBaseGameLayer) {
             if (f->framesHolding[i] < holdFor[i]) {
                 if (f->framesHolding[i] == 0) {
                     f->autoclick[i] = true;
-                    GJBaseGameLayer::handleButton(true, 1, Macro::flipControls() ? !isPlayer1 : isPlayer1);
+                    GJBaseGameLayer::handleButton(true, 1, Macro::flipControls() ? !player2 : player2);
                     f->autoclick[i] = false;
                 }
 
@@ -44,7 +44,7 @@ class $modify(GJBaseGameLayer) {
             }
             else {
                 f->autoclick[i] = true;
-                GJBaseGameLayer::handleButton(false, 1, Macro::flipControls() ? !isPlayer1 : isPlayer1);
+                GJBaseGameLayer::handleButton(false, 1, Macro::flipControls() ? !player2 : player2);
                 f->autoclick[i] = false;
 
                 f->framesReleasing[i] = 0;
@@ -54,24 +54,24 @@ class $modify(GJBaseGameLayer) {
 
     }
 
-    void handleButton(bool hold, int button, bool player1) {
-        if (button != 1) return GJBaseGameLayer::handleButton(hold, button, player1);
+    void handleButton(bool hold, int button, bool player2) {
+        if (button != 1) return GJBaseGameLayer::handleButton(hold, button, player2);
 
         auto& g = Global::get();
-        if (!g.autoclicker) return GJBaseGameLayer::handleButton(hold, button, player1);
+        if (!g.autoclicker) return GJBaseGameLayer::handleButton(hold, button, player2);
 
         auto& f = m_fields;
-        bool realPlayer1 = Macro::flipControls() ? !player1 : player1;
-        int i = realPlayer1 ? 0 : 1;
+        bool realPlayer2 = Macro::flipControls() ? !player2 : player2;
+        int i = realPlayer2 ? 1 : 0;
 
-        if (f->autoclick[i] || (realPlayer1 && !g.autoclickerP1) || (!realPlayer1 && !g.autoclickerP2)) return GJBaseGameLayer::handleButton(hold, button, player1);
+        if (f->autoclick[i] || (!realPlayer2 && !g.autoclickerP1) || (realPlayer2 && !g.autoclickerP2)) return GJBaseGameLayer::handleButton(hold, button, player2);
 
         f->holding[i] = hold;
 
         if (!hold) {
             f->framesHolding[i] = 0;
             f->framesReleasing[i] = 0;
-            GJBaseGameLayer::handleButton(hold, button, player1);
+            GJBaseGameLayer::handleButton(hold, button, player2);
         }
 
     }

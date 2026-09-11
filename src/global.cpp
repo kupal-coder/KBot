@@ -153,14 +153,15 @@ float Global::getTPS() {
   return g.tpsEnabled ? g.tps : 240.f;
 }
 
-int Global::getCurrentFrame(bool editor) {
+int Global::getCurrentFrame(bool /* editor */) {
   // double levelTime;
   PlayLayer* pl = PlayLayer::get();
 
   if (!pl) {
-    if (!editor) return 0;
-
-    // levelTime = GJBaseGameLayer::get()->m_gameState.m_levelTime;
+    // There is no game-state frame counter outside a PlayLayer. The former
+    // editor branch still dereferenced `pl` below, which made it a null-pointer
+    // crash path.
+    return 0;
   }
 
   auto& g = Global::get();
@@ -187,6 +188,10 @@ void Global::updateKeybinds() {
   // Since Geode v5 the Custom Keybinds mod exposes the vanilla gameplay
   // keybinds as regular keybind settings, so they can be read directly.
   Mod* keybindsMod = Loader::get()->getLoadedMod(customKeybindsID);
+
+  // This is rebuilt when entering and pausing a level. Clear the lookup set
+  // too, so it stays in sync with the current keybind settings.
+  g.allKeybinds.clear();
 
   for (size_t i = 0; i < 6; i++) {
     g.keybinds[i].clear();

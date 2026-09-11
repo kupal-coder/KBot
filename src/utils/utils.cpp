@@ -117,9 +117,13 @@ std::time_t Utils::getFileCreationTime(const std::filesystem::path& path) {
     ull.HighPart = creationTime.dwHighDateTime;
 
     return ull.QuadPart / 10000000ULL - 11644473600ULL;
+#else
+    // Android does not expose a portable file-creation timestamp through this
+    // API. Returning a deterministic sentinel is preferable to propagating an
+    // uninitialized value.
+    (void)path;
+    return 0;
 #endif
-    std::time_t ret;
-    return ret;
 }
 
 std::string Utils::formatTime(std::time_t time) {

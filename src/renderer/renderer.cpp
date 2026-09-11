@@ -102,15 +102,18 @@ class $modify(GJBaseGameLayer) {
         if ((!g.renderer.recording && !g.renderer.recordingAudio) || !pl) return;
         
         int frame = Global::getCurrentFrame();
+        // Rendering at a FPS above the active TPS is valid; it should run the
+        // capture timing every physics tick instead of taking modulo zero.
+        int captureInterval = std::max(1, static_cast<int>(Global::getTPS() / g.renderer.fps));
 
-        if (g.renderer.recording && frame % static_cast<int>(Global::getTPS() / g.renderer.fps) == 0)
+        if (g.renderer.recording && frame % captureInterval == 0)
             return g.renderer.handleRecording(pl, frame);
 
         if (g.renderer.recordingAudio && !g.renderer.startedAudio) {
             return g.renderer.startAudio(pl);
         }
 
-        if (g.renderer.recordingAudio && frame % static_cast<int>(Global::getTPS() / g.renderer.fps) == 0)
+        if (g.renderer.recordingAudio && frame % captureInterval == 0)
             return g.renderer.handleAudioRecording(pl, frame);
     }
 };
@@ -221,11 +224,13 @@ bool Renderer::toggle() {
 
         std::filesystem::path path = Mod::get()->getSettingValue<std::filesystem::path>("render_folder");
 
-        if (std::filesystem::exists(path))
-            g.renderer.start();
+        if (std::filesystem::exists(path)) {
+            if (!g.renderer.start()) return false;
+        }
         else {
-            if (utils::file::createDirectoryAll(path).isOk())
-                g.renderer.start();
+            if (utils::file::createDirectoryAll(path).isOk()) {
+                if (!g.renderer.start()) return false;
+            }
             else {
                 FLAlertLayer::create("Error", "There was an error getting the renders folder. ID: 11", "Ok")->show();
                 return false;
@@ -238,13 +243,41 @@ bool Renderer::toggle() {
     return true;
 }
 
-void Renderer::start() {
+bool Renderer::start() {
     PlayLayer* pl = PlayLayer::get();
-    GameManager* gm = GameManager::sharedState();
     Mod* mod = Mod::get();
-    fmod = FMODAudioEngine::sharedEngine();
 
-    fps = std::stoi(mod->getSavedValue<std::string>("render_fps"));
+    if (!pl || !pl->m_level) {
+        FLAlertLayer::create("Render", "Open a level before starting a render.", "Ok")->show();
+        return false;
+    }
+
+    auto readPositiveSetting = [mod](std::string_view key) -> unsigned {
+        auto value = geode::utils::numFromString<unsigned>(mod->getSavedValue<std::string>(std::string(key)));
+        return value.unwrapOr(0);
+    };
+
+    constexpr unsigned maxRenderFps = 240;
+    constexpr unsigned maxRenderDimension = 16384;
+    const unsigned requestedFps = readPositiveSetting("render_fps");
+    const unsigned requestedWidth = readPositiveSetting("render_width2");
+    const unsigned requestedHeight = readPositiveSetting("render_height");
+
+    // These values are user-editable strings. A zero FPS later becomes a
+    // divide/modulo by zero, and a zero dimension divides by zero in changeRes.
+    if (requestedFps == 0 || requestedFps > maxRenderFps ||
+        requestedWidth == 0 || requestedWidth > maxRenderDimension ||
+        requestedHeight == 0 || requestedHeight > maxRenderDimension) {
+        FLAlertLayer::create(
+            "Render",
+            "FPS must be between 1 and 240, and width and height must be between 1 and 16384.",
+            "Ok"
+        )->show();
+        return false;
+    }
+
+    fmod = FMODAudioEngine::sharedEngine();
+    fps = requestedFps;
     codec = mod->getSavedValue<std::string>("render_codec");
     bitrate = mod->getSavedValue<std::string>("render_bitrate") + "M";
     extraArgs = mod->getSavedValue<std::string>("render_args");
@@ -266,8 +299,8 @@ void Renderer::start() {
     std::string filename = fmt::format("render_{}_{}{}", std::string_view(pl->m_level->m_levelName), std::to_string(timestamp), extension);
     std::string path = (Mod::get()->getSettingValue<std::filesystem::path>("render_folder") / filename).string();
 
-    width = std::stoi(mod->getSavedValue<std::string>("render_width2"));
-    height = std::stoi(mod->getSavedValue<std::string>("render_height"));
+    width = requestedWidth;
+    height = requestedHeight;
 
     if (width % 2 != 0)
         width++;
@@ -570,6 +603,8 @@ void Renderer::start() {
         });
         
         }).detach();
+
+    return true;
 }
 
 void Renderer::stop(int frame) {
@@ -730,7 +765,11 @@ void Renderer::captureFrame() {
 }
 int wa = 0;
 void Renderer::handleRecording(PlayLayer* pl, int frame) {
-    if (!pl) stop(frame);
+    if (!pl) {
+        stop(frame);
+        return;
+    }
+
     isPlatformer = pl->m_levelSettings->m_platformerMode;
     if (dontRender || pl->m_player1->m_isDead) return;
 

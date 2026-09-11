@@ -332,7 +332,8 @@ void RecordLayer::textChanged(CCTextInputNode* node) {
         mod->setSavedValue("render_bitrate", std::string(bitrateInput->getString()));
 
     if (std::string_view(fpsInput->getString()) != "" && node == fpsInput) {
-        if (std::stoi(fpsInput->getString()) > 240)
+        auto fps = numFromString<unsigned>(fpsInput->getString());
+        if (fps.isErr() || fps.unwrap() == 0 || fps.unwrap() > 240)
             return fpsInput->setString(mod->getSavedValue<std::string>("render_fps").c_str());
         mod->setSavedValue("render_fps", std::string(fpsInput->getString()));
     }

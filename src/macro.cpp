@@ -4,6 +4,8 @@
 
 #include <Geode/modify/PlayLayer.hpp>
 
+#include <stdexcept>
+
 void Macro::recordAction(int frame, int button, bool player2, bool hold) {
     PlayLayer* pl = PlayLayer::get();
     if (!pl) return;
@@ -45,21 +47,25 @@ bool Macro::flipControls() {
     return pl->m_levelSettings->m_platformerMode ? false : GameManager::get()->getGameVariable("0010");
 }
 
-void Macro::autoSave(GJGameLevel* level, int number) {
+bool Macro::autoSave(GJGameLevel* level, std::int64_t number) {
     if (!level) level = PlayLayer::get() != nullptr ? PlayLayer::get()->m_level : nullptr;
-    if (!level) return;
+    if (!level) return false;
 
     std::string levelname = level->m_levelName;
     std::filesystem::path autoSavesPath = Mod::get()->getSettingValue<std::filesystem::path>("autosaves_folder");
     std::filesystem::path path = autoSavesPath / fmt::format("autosave_{}_{}", levelname, number);
 
-    if (!std::filesystem::exists(autoSavesPath)) return;
+    if (!std::filesystem::exists(autoSavesPath)) return false;
 
     std::string username = GJAccountManager::sharedState() != nullptr ? GJAccountManager::sharedState()->m_username : "";
     int result = Macro::save(username, fmt::format("AutoSave {} in level {}", number, levelname), path.string());
 
-    if (result != 0)
+    if (result != 0) {
         log::debug("Failed to autosave macro. ID: {}. Path: {}", result, path);
+        return false;
+    }
+
+    return true;
 }
 
 void Macro::tryAutosave(GJGameLevel* level, CheckpointObject* cp) {
@@ -81,7 +87,8 @@ void Macro::tryAutosave(GJGameLevel* level, CheckpointObject* cp) {
     std::filesystem::remove(path.string() + ".gdr", ec); // Remove previous save
     if (ec) log::warn("Failed to remove previous autosave");
 
-    autoSave(level, g.currentSession);
+    if (autoSave(level, g.currentSession))
+        g.lastAutoSaveFrame = g.checkpoints[cp].frame;
 
 }
 
@@ -102,7 +109,8 @@ void Macro::updateInfo(PlayLayer* pl) {
     if (name != g.macro.levelInfo.name)
         g.macro.levelInfo.name = name;
 
-    std::string author = GJAccountManager::sharedState()->m_username;
+    GJAccountManager* accountManager = GJAccountManager::sharedState();
+    std::string author = accountManager ? accountManager->m_username : "";
     if (g.macro.author != author)
         g.macro.author = author;
 
@@ -143,6 +151,7 @@ int Macro::save(std::string author, std::string desc, std::string path, bool jso
     auto& g = Global::get();
 
     if (g.macro.inputs.empty()) return 31;
+    if (!std::isfinite(g.macro.framerate) || g.macro.framerate <= 0.f) return 32;
 
     std::string extension = json ? ".gdr.json" : ".gdr";
 
@@ -225,54 +234,75 @@ Macro Macro::XDtoGDR(std::filesystem::path path) {
 #else
     std::ifstream file(path);
 #endif
-    std::string line;
 
     if (!file.is_open()) {
         newMacro.description = "fail";
         return newMacro;
     }
 
-    bool firstIt = true;
-    bool andr = false;
+    try {
+        std::string line;
+        float fpsMultiplier = 1.f;
 
-    float fpsMultiplier = 1.f;
+        while (std::getline(file, line)) {
+            if (line.empty()) continue;
 
-    while (std::getline(file, line)) {
-        std::string item;
-        std::stringstream ss(line);
-        std::vector<std::string> action;
+            std::string item;
+            std::stringstream ss(line);
+            std::vector<std::string> action;
 
-        while (std::getline(ss, item, '|'))
-            action.push_back(item);
+            while (std::getline(ss, item, '|'))
+                action.push_back(item);
 
-        if (action.size() < 4) {
-            if (action[0] == "android")
-                fpsMultiplier = 4.f;
-            else {
-                int fps = std::stoi(action[0]);
-                fpsMultiplier = 240.f / fps;
+            // Legacy .xd files use short lines for their FPS header and at
+            // least five fields for input records.
+            if (action.size() < 4) {
+                if (action.empty() || action[0].empty())
+                    throw std::runtime_error("Missing .xd frame-rate header");
+
+                if (action[0] == "android") {
+                    fpsMultiplier = 4.f;
+                }
+                else {
+                    int fps = std::stoi(action[0]);
+                    if (fps <= 0)
+                        throw std::runtime_error("Invalid .xd frame rate");
+                    fpsMultiplier = 240.f / static_cast<float>(fps);
+                }
+
+                continue;
             }
 
-            continue;
-        }
+            if (action.size() < 5)
+                throw std::runtime_error("Incomplete .xd input record");
 
-        int frame = static_cast<int>(round(std::stoi(action[0]) * fpsMultiplier));
-        int button = std::stoi(action[2]);
-        bool hold = action[1] == "1";
-        bool player2 = action[3] == "1";
-        bool posOnly = action[4] == "1";
+            int frame = static_cast<int>(std::round(std::stoi(action[0]) * fpsMultiplier));
+            int button = std::stoi(action[2]);
+            bool hold = action[1] == "1";
+            bool player2 = action[3] == "1";
+            bool posOnly = action[4] == "1";
 
-        if (!posOnly)
-            newMacro.inputs.push_back(input(frame, button, player2, hold));
-        else {
+            if (!posOnly) {
+                newMacro.inputs.push_back(input(frame, button, player2, hold));
+                continue;
+            }
+
+            // Position-only records contain both player positions.
+            if (action.size() < 13)
+                throw std::runtime_error("Incomplete .xd frame fix");
+
             cocos2d::CCPoint p1Pos = ccp(std::stof(action[5]), std::stof(action[6]));
             cocos2d::CCPoint p2Pos = ccp(std::stof(action[11]), std::stof(action[12]));
 
             newMacro.frameFixes.push_back({ frame, {p1Pos, 0.f, false}, {p2Pos, 0.f, false} });
         }
     }
-
-    file.close();
+    catch (std::exception const& error) {
+        log::warn("Failed to parse legacy macro '{}': {}", path.string(), error.what());
+        newMacro.inputs.clear();
+        newMacro.frameFixes.clear();
+        newMacro.description = "fail";
+    }
 
     return newMacro;
 

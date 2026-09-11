@@ -4,6 +4,7 @@
 #include <Geode/loader/SettingV3.hpp>
 #include <Geode/utils/Keyboard.hpp>
 
+#include <cstdint>
 #include <string>
 #include <thread>
 #include <mutex>
@@ -132,7 +133,7 @@ public:
 
     int lastAutoSaveFrame = 0;
     std::chrono::time_point<std::chrono::steady_clock> lastAutoSaveMS = std::chrono::steady_clock::now();
-    int currentSession = 0;
+    std::int64_t currentSession = 0;
 
     bool stepFrame = false;
     bool stepFrameDraw = false;
