@@ -44,7 +44,7 @@ class $modify(PlayLayer) {
     PlayLayer::postUpdate(dt);
     auto& g = Global::get();
 
-    if (m_fields->delayedLevelRestart != -1 && m_fields->delayedLevelRestart >= Global::getCurrentFrame()) {
+    if (m_fields->delayedLevelRestart != -1 && m_fields->delayedLevelRestart <= Global::getCurrentFrame()) {
       m_fields->delayedLevelRestart = -1;
       resetLevelFromStart();
     }
@@ -94,11 +94,11 @@ class $modify(PlayLayer) {
       }
       if (m_levelSettings->m_platformerMode) {
         if (m_player2->m_holdingButtons[2]) {
-          handleButton(false, 2, false);
+          handleButton(false, 2, true);
           g.macro.inputs.push_back(input(frame, 2, true, false));
         }
         if (m_player2->m_holdingButtons[3]) {
-          handleButton(false, 3, false);
+          handleButton(false, 3, true);
           g.macro.inputs.push_back(input(frame, 3, true, false));
         }
       }
@@ -180,8 +180,8 @@ class $modify(PlayLayer) {
 
     g.ignoreRecordAction = true;
     for (int i = 0; i < 4; i++) {
-      bool player2 = !(sidesButtons[i] > 2);
-      bool rightKey = sidesButtons[i] == 5 || sidesButtons[i] == 2;
+      bool player2 = sidesButtons[i] > 2;
+      if (Macro::flipControls()) player2 = !player2;
       if (g.heldButtons[sidesButtons[i]])
         handleButton(true, indexButton[sidesButtons[i]], player2);
     }

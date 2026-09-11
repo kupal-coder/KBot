@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cmath>
+#include <cstdint>
 #include <iostream>
 #include <vector>
 #include <optional>
@@ -24,12 +26,14 @@ namespace gdr {
 		std::string name;
 		std::string version;
 
+		Bot() = default;
+
 		inline Bot(std::string const& name, std::string const& version)
 			: name(name), version(version) {}
 	};
 
 	struct Level {
-		uint32_t id;
+		uint32_t id = 0;
 		std::string name;
 
 		Level() = default;
@@ -45,7 +49,7 @@ namespace gdr {
 	};
 
 	struct FrameFix {
-		int frame;
+		int frame = 0;
 		FrameData p1;
 		FrameData p2;
 	};
@@ -56,10 +60,10 @@ namespace gdr {
 		template <typename, typename>
 		friend class Replay;
 	public:
-		uint32_t frame;
-		int button;
-		bool player2;
-		bool down;
+		uint32_t frame = 0;
+		int button = 0;
+		bool player2 = false;
+		bool down = false;
 
 		inline virtual void parseExtension(json::object_t obj) {}
 		inline virtual json::object_t saveExtension() const {
@@ -93,13 +97,13 @@ namespace gdr {
 		std::string author;
 		std::string description;
 
-		float duration;
-		float gameVersion;
-		float version = 1.0;
+		float duration = 0.f;
+		float gameVersion = 0.f;
+		float version = 1.0f;
 
 		float framerate = 240.f;
 
-		int seed = 0;
+		uintptr_t seed = 0;
 		int coins = 0;
 
 		bool ldm = false;
@@ -125,13 +129,16 @@ namespace gdr {
 
 		static Self importData(std::vector<uint8_t> const& data, bool importInputs = true) {
 			Self replay;
-			json replayJson;
 
-			replayJson = json::from_msgpack(data, true, false);
-			if (replayJson.is_discarded()) {
-				replayJson = json::parse(data, nullptr, false);
-				if (replayJson.is_discarded()) return replay;
-			}
+			try {
+				json replayJson = json::from_msgpack(data, true, false);
+				if (replayJson.is_discarded()) {
+					replayJson = json::parse(data, nullptr, false);
+					if (replayJson.is_discarded() || !replayJson.is_object()) return replay;
+				}
+				else if (!replayJson.is_object()) {
+					return replay;
+				}
 
 			// try {
 			// 	replayJson = json::from_msgpack(data);
@@ -158,18 +165,21 @@ namespace gdr {
 			if (replayJson.contains("framerate"))
 				replay.framerate = replayJson["framerate"];
 
+			if (!std::isfinite(replay.framerate) || replay.framerate <= 0.f)
+				return Self{};
+
 			bool rotation = ver.find("beta.") == std::string::npos && ver.find("alpha.") == std::string::npos;
 			if (replay.botInfo.name == "xdBot" && ver == "v2.0.0") rotation = true;
 
 			// bool offset = false;
 			int offset = replay.botInfo.name == "xdBot" ? 1 : 0;
 
-			if (offset == 1) {
+			if (offset == 1 && !ver.empty()) {
 				if (ver.front() == 'v') ver = ver.substr(1);
 
 				std::vector<std::string> splitVer = splitByChar(ver, '.');
 
-				if (splitVer.size() <= 3) {
+				if (splitVer.size() == 3) {
 					std::vector<std::string> realVer = {"2", "3", "6"};
 
 					geode::prelude::VersionInfo macroVer = getVersion(splitVer);
@@ -253,7 +263,12 @@ namespace gdr {
 				replay.frameFixes.push_back(frameFix);
 			}
 
-			return replay;
+				return replay;
+			}
+			catch (std::exception const&) {
+				// Macros are user-imported files. Invalid fields must not take down the game.
+				return Self{};
+			}
 		}
 
 		std::vector<uint8_t> exportData(bool exportJson = false) {

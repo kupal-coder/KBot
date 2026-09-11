@@ -64,7 +64,7 @@ public:
     void captureFrame();
     void changeRes(bool og);
 
-    void start();
+    bool start();
     void startAudio(PlayLayer* pl);
 
     void stop(int frame = 0);

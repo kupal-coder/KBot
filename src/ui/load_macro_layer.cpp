@@ -164,18 +164,21 @@ void LoadMacroLayer::onImportMacro(CCObject*) {
 			}
 			else {
 
-				std::ifstream f(path, std::ios::binary);
+					std::error_code ec;
+					auto fileSize = std::filesystem::file_size(path, ec);
+					constexpr std::uintmax_t maxMacroSize = 64ull * 1024 * 1024;
+					if (ec || fileSize == 0 || fileSize > maxMacroSize)
+						return FLAlertLayer::create("Error", "This macro file cannot be read or is too large.", "Ok")->show();
 
-				f.seekg(0, std::ios::end);
-				size_t fileSize = f.tellg();
-				f.seekg(0, std::ios::beg);
+					std::ifstream f(path, std::ios::binary);
+					if (!f)
+						return FLAlertLayer::create("Error", "This macro file could not be opened.", "Ok")->show();
 
-				std::vector<std::uint8_t> macroData(fileSize);
+					std::vector<std::uint8_t> macroData(static_cast<size_t>(fileSize));
+					if (!f.read(reinterpret_cast<char*>(macroData.data()), static_cast<std::streamsize>(fileSize)))
+						return FLAlertLayer::create("Error", "This macro file could not be read.", "Ok")->show();
 
-				f.read(reinterpret_cast<char*>(macroData.data()), fileSize);
-				f.close();
-
-				tempMacro = Macro::importData(macroData);
+					tempMacro = Macro::importData(macroData);
 
 			}
 
@@ -437,11 +440,11 @@ void LoadMacroLayer::addList(bool refresh, float prevScroll) {
 
 		if (Utils::toLower(name).find(search) == std::string::npos && search != "") continue;
 
-		std::time_t date;
+			std::time_t date = 0;
 
-#ifdef GEODE_IS_WINDOWS
-		date = Utils::getFileCreationTime(macros[i]);
-#endif
+			#ifdef GEODE_IS_WINDOWS
+			date = Utils::getFileCreationTime(macros[i]);
+			#endif
 
 		MacroCell* cell = MacroCell::create(macros[i], name, date, menuLayer, mergeLayer, static_cast<CCLayer*>(this));
 		cells->addObject(cell);
@@ -677,19 +680,31 @@ void MacroCell::handleLoad() {
 			g.macro = oldMacro;
 	}
 	else {
-		std::ifstream f(path.string(), std::ios::binary);
+			std::error_code ec;
+			auto fileSize = std::filesystem::file_size(path, ec);
+			constexpr std::uintmax_t maxMacroSize = 64ull * 1024 * 1024;
+			if (ec || fileSize == 0 || fileSize > maxMacroSize) {
+				if (!isMerge)
+					FLAlertLayer::create("Error", "This macro file cannot be read or is too large.", "Ok")->show();
+				return;
+			}
 
-		f.seekg(0, std::ios::end);
-		size_t fileSize = f.tellg();
-		f.seekg(0, std::ios::beg);
+			std::ifstream f(path, std::ios::binary);
+			if (!f) {
+				if (!isMerge)
+					FLAlertLayer::create("Error", "This macro file could not be opened.", "Ok")->show();
+				return;
+			}
 
-		std::vector<std::uint8_t> macroData(fileSize);
+			std::vector<std::uint8_t> macroData(static_cast<size_t>(fileSize));
+			if (!f.read(reinterpret_cast<char*>(macroData.data()), static_cast<std::streamsize>(fileSize))) {
+				if (!isMerge)
+					FLAlertLayer::create("Error", "This macro file could not be read.", "Ok")->show();
+				return;
+			}
 
-		f.read(reinterpret_cast<char*>(macroData.data()), fileSize);
-		f.close();
-
-		newMacro = Macro::importData(macroData);
-	}
+			newMacro = Macro::importData(macroData);
+		}
 
 	if (isMerge) {
 		bool players[2] = { true, true };

@@ -680,62 +680,33 @@ void MacroEditLayer::switchFrame(CCObject* obj) {
     changeSelectedInputFrame(input.frame + sum);
 }
 
-void MacroEditLayer::changeSelectedInputFrame(int frame, bool isArrow) {
-    auto input = inputs[selectedInputIndex];
+void MacroEditLayer::changeSelectedInputFrame(int frame, bool /* isArrow */) {
+    if (selectedInputIndex < 0 || selectedInputIndex >= static_cast<int>(inputs.size())) return;
 
-    input.frame = frame;
-    
+    // Frame input is unsigned in the replay format. Arrow navigation already
+    // prevents negative frames; clamp direct edits to the same invariant.
+    frame = std::max(0, frame);
+
+    input editedInput = inputs[selectedInputIndex];
+    editedInput.frame = frame;
     inputs.erase(inputs.begin() + selectedInputIndex);
-    
-    size_t addedAt = 0;
 
-    for (size_t i = 0; i < inputs.size(); i++) {
-        int currentFrame = inputs[i].frame;
-        int nextFrame = i != inputs.size() - 1 ? inputs[i + 1].frame : -1;
-
-        if ((selectedInputIndex == 0 && input.frame < currentFrame) || frame <= inputs[0].frame) {
-            inputs.insert(inputs.begin(), input);
-
-            addedAt = 0;
-
-            break;
+    // Reinsert even when the edited item was the only action. The old loop did
+    // not execute for an empty vector and silently deleted that action.
+    auto insertAt = std::upper_bound(
+        inputs.begin(), inputs.end(), editedInput.frame,
+        [](int targetFrame, input const& candidate) {
+            return targetFrame < candidate.frame;
         }
+    );
+    size_t addedAt = static_cast<size_t>(std::distance(inputs.begin(), insertAt));
+    inputs.insert(insertAt, editedInput);
 
-        if (selectedInputIndex == inputs.size() && isArrow) {
-
-            addedAt = selectedInputIndex;
-            inputs.push_back(input);
-
-            auto secLast = inputs.size() - 2;
-
-            if (inputs[secLast].frame > input.frame) {
-                auto inputCopy = inputs[secLast];
-
-                inputs.erase(inputs.begin() + secLast);
-                inputs.push_back(inputCopy);
-
-                addedAt = selectedInputIndex - 1;
-            }
-
-            break;
-        }
-
-        if ((input.frame > currentFrame && input.frame <= nextFrame) || nextFrame == -1) {
-
-            inputs.insert(inputs.begin() + i + 1, input);
-            
-            addedAt = i + 1;
-
-            break;
-        }
-    }
-
-    int co = addedAt / 6;
-    int newPage = co + 1;
-    int newSelected = addedAt - co * 6;
+    int pageOffset = static_cast<int>(addedAt / 6);
+    int newPage = pageOffset + 1;
+    int newSelected = static_cast<int>(addedAt % 6);
 
     loadPage(newPage);
-
     selectedInput = newSelected;
     reSelectInput();
     updateSaved();

@@ -5,20 +5,23 @@
 cocos2d::CCPoint dataFromString(std::string dataString) {
     std::stringstream ss(dataString);
     std::string item;
-    std::vector<std::string> vec;
 
-    float xPos = 0.f;
-    float yPos = 0.f;
-
-    for (int i = 0; i < 3; i++) {
-        std::getline(ss, item, ',');
-        if (i == 1)
-            xPos = std::stof(item);
-        else if (i == 2)
-            yPos = std::stof(item);
+    try {
+        // The legacy format stores an unused field before X and Y.
+        for (int i = 0; i < 3; i++) {
+            if (!std::getline(ss, item, ',')) return { 0.f, 0.f };
+            if (i == 1) {
+                const float xPos = std::stof(item);
+                if (!std::getline(ss, item, ',')) return { 0.f, 0.f };
+                return { xPos, std::stof(item) };
+            }
+        }
+    }
+    catch (std::exception const&) {
+        // Invalid imported frame-fix data should simply be ignored.
     }
 
-    return { xPos, yPos };
+    return { 0.f, 0.f };
 };
 
 std::vector<std::string> splitByChar(std::string str, char splitChar) {
@@ -38,11 +41,20 @@ std::vector<std::string> splitByChar(std::string str, char splitChar) {
 }
 
 geode::prelude::VersionInfo getVersion(std::vector<std::string> nums) {
-    size_t major = geode::utils::numFromString<int>(nums[0]).unwrapOr(-1);
-    size_t minor = geode::utils::numFromString<int>(nums[1]).unwrapOr(-1);
-    size_t patch = geode::utils::numFromString<int>(nums[2]).unwrapOr(-1);
-    
-    geode::prelude::VersionInfo ret(major, minor, patch);
+    if (nums.size() != 3)
+        return { 0, 0, 0 };
 
-    return ret;
+    auto major = geode::utils::numFromString<int>(nums[0]);
+    auto minor = geode::utils::numFromString<int>(nums[1]);
+    auto patch = geode::utils::numFromString<int>(nums[2]);
+
+    if (major.isErr() || minor.isErr() || patch.isErr() ||
+        major.unwrap() < 0 || minor.unwrap() < 0 || patch.unwrap() < 0)
+        return { 0, 0, 0 };
+
+    return {
+        static_cast<size_t>(major.unwrap()),
+        static_cast<size_t>(minor.unwrap()),
+        static_cast<size_t>(patch.unwrap())
+    };
 }
